@@ -1,23 +1,25 @@
-# Compiled class file
+.svn/
+target/
+test-output/
 *.class
-
-# Log file
+.classpath
+.project
+.settings/
+tmp
+temp
 *.log
-
-# BlueJ files
-*.ctxt
-
-# Mobile Tools for Java (J2ME)
-.mtj.tmp/
-
-# Package Files #
-*.jar
-*.war
-*.nar
-*.ear
-*.zip
+antx.properties
+otter.properties
+jtester.properties
+.idea/
+*.iml
+.DS_Store
 *.tar.gz
-*.rar
-
-# virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
-hs_err_pid*
+*.rpm
+client-adapter/example/
+*.dat
+conf/
+canal-admin/canal-admin-ui/dist/
+canal-admin/canal-admin-ui/node/
+canal-admin/canal-admin-ui/node_modules/
+canal-admin/canal-admin-server/src/main/resources/conf/
