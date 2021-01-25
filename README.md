@@ -97,7 +97,7 @@ canal 作为 MySQL binlog 增量获取和解析工具，可将变更记录投递
 - [阿里巴巴离线同步开源项目 DataX](https://github.com/alibaba/datax)
 - [阿里巴巴数据库连接池开源项目 Druid](https://github.com/alibaba/druid)
 - [阿里巴巴实时数据同步工具 DTS](https://www.aliyun.com/product/dts)
-- [高性能队列](https://tech.meituan.com/2016/11/18/disruptor.html)
+- [高性能队列(Disruptor)](https://tech.meituan.com/2016/11/18/disruptor.html)
 
 ## 问题反馈
 - 报告 issue: [github issues](https://github.com/alibaba/canal/issues)
