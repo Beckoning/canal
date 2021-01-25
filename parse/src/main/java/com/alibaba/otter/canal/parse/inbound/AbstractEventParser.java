@@ -146,6 +146,18 @@ public abstract class AbstractEventParser<EVENT> extends AbstractCanalLifeCycle 
         });
     }
 
+    /**
+     * 1、初始化缓冲队列transactionBuffer
+     * 2、初始化binlogParser
+     * 3、启动一个新的线程进行核心工作
+     *     3、1 构造Erosa连接ErosaConnection
+     *     3、2 利用ErosaConnection启动一个心跳线程
+     *     3、3 执行dump前的准备工作,查看数据库的binlog_format和binlog_row_image，准备一下DatabaseTableMeta
+     *     3、4 findStartPosition获取最后的位置信息（挺重要的，具体实现在MysqlEventParser）
+     *     3、5 构建一个sinkHandler，实现具体的sink逻辑（我们可以看到，里面就是把单个event事件写入到transactionBuffer中）
+     *     3、6 开始dump过程，默认是parallel处理的，需要构建一个MultiStageCoprocessor；如果不是parallel，就直接用sinkHandler处理。内部while不断循环，根据是否parallel，选择MultiStageCoprocessor或者sinkHandler进行投递。
+     * 4、如果有异常抛出，那么根据异常类型做相关处理，然后退出sink消费，释放一下状态，sleep一段时间后重新开始
+     */
     public void start() {
         super.start();
         MDC.put("destination", destination);
@@ -254,6 +266,7 @@ public abstract class AbstractEventParser<EVENT> extends AbstractCanalLifeCycle 
                                 multiStageCoprocessor.start();
                                 erosaConnection.dump(gtidSet, multiStageCoprocessor);
                             } else {
+                                //启动协调处理机器
                                 multiStageCoprocessor.start();
                                 if (StringUtils.isEmpty(startPosition.getJournalName())
                                     && startPosition.getTimestamp() != null) {

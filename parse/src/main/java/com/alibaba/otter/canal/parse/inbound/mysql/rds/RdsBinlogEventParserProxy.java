@@ -92,6 +92,11 @@ public class RdsBinlogEventParserProxy extends MysqlEventParser {
         super.start();
     }
 
+    /**
+     * 如果抛出了PositionNotFoundException异常，就委托rdsLocalBinlogEventParser进行处理
+     * rdsLocalBinlogEventParser会通过下载binlog的oss备份，找到目标binlog文件和位置
+     * @param throwable
+     */
     private void handleMysqlParserException(Throwable throwable) {
         if (throwable instanceof PositionNotFoundException) {
             logger.info("remove rds not found position, try download rds binlog!");
