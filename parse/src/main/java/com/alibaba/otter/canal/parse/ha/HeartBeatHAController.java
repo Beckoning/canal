@@ -36,6 +36,7 @@ public class HeartBeatHAController extends AbstractCanalLifeCycle implements Can
         synchronized (this) {
             if (failedTimes > detectingRetryTimes) {
                 if (switchEnable) {
+                    //执行doSwitch()进行主备切换
                     eventParser.doSwitch();// 通知执行一次切换
                     failedTimes = 0;
                 } else {

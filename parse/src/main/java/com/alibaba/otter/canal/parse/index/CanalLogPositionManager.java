@@ -6,6 +6,7 @@ import com.alibaba.otter.canal.protocol.position.LogPosition;
 
 /**
  * Created by yinxiu on 17/3/17. Email: marklin.hz@gmail.com
+ * 管理位点信息
  */
 public interface CanalLogPositionManager extends CanalLifeCycle {
 

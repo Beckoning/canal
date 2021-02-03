@@ -71,6 +71,7 @@ public class CanalStarter {
             if (canalMQProducer != null) {
                 ClassLoader cl = Thread.currentThread().getContextClassLoader();
                 Thread.currentThread().setContextClassLoader(canalMQProducer.getClass().getClassLoader());
+                //配置、并启动消息队列
                 canalMQProducer.init(properties);
                 Thread.currentThread().setContextClassLoader(cl);
             }

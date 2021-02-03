@@ -47,6 +47,7 @@ import com.google.common.collect.MigrateMap;
 public class CanalServerWithEmbedded extends AbstractCanalLifeCycle implements CanalServer, CanalService {
 
     private static final Logger        logger  = LoggerFactory.getLogger(CanalServerWithEmbedded.class);
+    //维护具体实例key为destination value为canal实例
     private Map<String, CanalInstance> canalInstances;
     // private Map<ClientIdentity, Position> lastRollbackPostions;
     private CanalInstanceGenerator     canalInstanceGenerator;
@@ -75,6 +76,8 @@ public class CanalServerWithEmbedded extends AbstractCanalLifeCycle implements C
             loadCanalMetrics();
             metrics.setServerPort(metricsPort);
             metrics.initialize();
+            //MigrateMap.makeComputingMap，
+            //当需要某个instance的时候，就会调用apply方法用instanceGenerator创建对应的instance。
             canalInstances = MigrateMap.makeComputingMap(destination -> canalInstanceGenerator.generate(destination));
 
             // lastRollbackPostions = new MapMaker().makeMap();
@@ -164,19 +167,27 @@ public class CanalServerWithEmbedded extends AbstractCanalLifeCycle implements C
 
     /**
      * 客户端订阅，重复订阅时会更新对应的filter信息
+     *
+     * 1、根据客户端标识clientIdentity中的destination，找到对应的instance
+     * 2、通过instance的metaManager记录下当前这个客户端在订阅
+     * 3、通过instace的metaManage获取当前订阅binlog的position位置。如果是第一次订阅，那么metaManage没有position信息，就从eventStore获取第一个binlog的position，然后更新到metaManager
+     * 4、通知下订阅关系变化
      */
     @Override
     public void subscribe(ClientIdentity clientIdentity) throws CanalServerException {
+        //判断实是否可用
         checkStart(clientIdentity.getDestination());
-
+        //根据客户端标识clientIdentity中的destination，找到对应的instance
         CanalInstance canalInstance = canalInstances.get(clientIdentity.getDestination());
         if (!canalInstance.getMetaManager().isStart()) {
             canalInstance.getMetaManager().start();
         }
-
+        //通过instance的metaManager记录下当前这个客户端在订阅
         canalInstance.getMetaManager().subscribe(clientIdentity); // 执行一下meta订阅
 
+        //通过instace的metaManage获取当前订阅binlog的position位置
         Position position = canalInstance.getMetaManager().getCursor(clientIdentity);
+        //如果是第一次订阅，那么metaManage没有position信息，就从eventStore获取第一个binlog的position
         if (position == null) {
             position = canalInstance.getEventStore().getFirstPosition();// 获取一下store中的第一条
             if (position != null) {
@@ -193,6 +204,9 @@ public class CanalServerWithEmbedded extends AbstractCanalLifeCycle implements C
 
     /**
      * 取消订阅
+     *
+     * 就是找到instance对应的metaManager，然后调用unsubscribe方法取消这个客户端的订阅。
+     * 需要注意的是，取消订阅，instance本身仍然是在运行的，可以有新的client来订阅这个instance。
      */
     @Override
     public void unsubscribe(ClientIdentity clientIdentity) throws CanalServerException {
@@ -311,6 +325,13 @@ public class CanalServerWithEmbedded extends AbstractCanalLifeCycle implements C
      * 
      * 注意： meta获取和数据的获取需要保证顺序性，优先拿到meta的，一定也会是优先拿到数据，所以需要加同步. (不能出现先拿到meta，拿到第二批数据，这样就会导致数据顺序性出现问题)
      * </pre>
+     *
+     *
+     * 流程：
+     * 1、根据clientIdentity的destination获取对应的instance
+     * 2、获取到流式数据中的最后一批获取的位置positionRanges（跟batchId有关联，就是上面那个map里面的）
+     * 3、从cananlEventStore里面获取binlog，转化为event。一般是从最后的一个batchId位置开始，如果之前没有batchId，那么就从cursor记录的消费位点开始；如果cursor为空，那只能从eventStore的第一条消息开始。
+     * 4、event转化为entry，并生成新的batchId，组合成message返回给客户端
      */
     @Override
     public Message getWithoutAck(ClientIdentity clientIdentity, int batchSize, Long timeout, TimeUnit unit)
@@ -318,6 +339,7 @@ public class CanalServerWithEmbedded extends AbstractCanalLifeCycle implements C
         checkStart(clientIdentity.getDestination());
         checkSubscribe(clientIdentity);
 
+        //通过destination获取实例
         CanalInstance canalInstance = canalInstances.get(clientIdentity.getDestination());
         synchronized (canalInstance) {
             // 获取到流式数据中的最后一批获取的位置

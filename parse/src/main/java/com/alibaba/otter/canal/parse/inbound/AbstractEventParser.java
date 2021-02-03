@@ -405,6 +405,10 @@ public abstract class AbstractEventParser<EVENT> extends AbstractCanalLifeCycle 
             startTs = System.currentTimeMillis();
         }
 
+        /**
+         * 通过eventSink的sink方法，把buffer中的event事件写入store
+         *
+         */
         boolean result = eventSink.sink(entrys, (runningInfo == null) ? null : runningInfo.getAddress(), destination);
 
         if (enabled) {

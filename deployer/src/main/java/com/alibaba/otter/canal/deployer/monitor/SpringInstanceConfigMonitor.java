@@ -52,6 +52,7 @@ public class SpringInstanceConfigMonitor extends AbstractCanalLifeCycle implemen
 
         executor.scheduleWithFixedDelay(() -> {
             try {
+                //如果文件发生改变，重新加配置并启动实例（instance）
                 scan();
                 if (isFirst) {
                     isFirst = false;

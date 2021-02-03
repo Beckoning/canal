@@ -22,6 +22,13 @@ import com.alibaba.otter.canal.protocol.ClientIdentity;
 import com.alibaba.otter.canal.protocol.Message;
 import com.alibaba.otter.canal.server.embedded.CanalServerWithEmbedded;
 
+/**
+ * 功能呢
+ * 1、工作线程池executorService，对每个instance起一个worker线程
+ * 2、canalMQWorks，记录了destination(instance的标识)和worker线程的关系
+ * 3、CanalServerWithEmbedded
+ * 4、CanalMQProducer投递mq消息
+ */
 public class CanalMQStarter {
 
     private static final Logger          logger         = LoggerFactory.getLogger(CanalMQStarter.class);
@@ -54,7 +61,7 @@ public class CanalMQStarter {
             if (mqProperties.isFilterTransactionEntry()) {
                 System.setProperty("canal.instance.filter.transaction.entry", "true");
             }
-
+            //获取CanalServerWithEmbedded单例对象
             canalServer = CanalServerWithEmbedded.instance();
 
             // 对应每个instance启动一个worker线程
@@ -71,7 +78,7 @@ public class CanalMQStarter {
 
             running = true;
             logger.info("## the MQ workers is running now ......");
-
+            //注册shutdownThread，退出程序关闭线程池和mqProvider
             shutdownThread = new Thread(() -> {
                 try {
                     logger.info("## stop the MQ workers");
@@ -125,6 +132,15 @@ public class CanalMQStarter {
         }
     }
 
+    /**
+     * 1、给自己创建一个身份标识，作为client
+     * 2、根据destination获取对应instance，如果没有就sleep，等待产生（比如从别的server那边HA过来一个instance）
+     * 3、构建一个MQ的destination对象,加载相关mq的配置信息，用作mqProducer的入参
+     * 4、在embeddedCanal中注册这个订阅客户端
+     * 5、开始运行，并通过embededCanal进行流式get/ack/rollback协议，进行数据消费
+     * @param destination
+     * @param destinationRunning
+     */
     private void worker(String destination, AtomicBoolean destinationRunning) {
         while (!running || !destinationRunning.get()) {
             try {

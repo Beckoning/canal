@@ -208,6 +208,10 @@ public class MysqlEventParser extends AbstractMysqlEventParser implements CanalE
 
     /**
      * 心跳信息
+     * 1、定时去连接数据库，可以通过select\desc\show\explain等方法做存活检测
+     * 2、如果检测成功，就调用HeartBeatHAController的onSuccess方法
+     * 3、如果失败，就HeartBeatHAController的onFail方法
+     * 4、如果失败超过一定次数，onFail方法中就会调用doSwitch方法进行主备切换
      *
      * @author jianghang 2012-7-6 下午02:50:15
      * @version 1.0.0
@@ -657,7 +661,7 @@ public class MysqlEventParser extends AbstractMysqlEventParser implements CanalE
     }
 
     /**
-     * 查询当前db的serverId信息
+     * 查询当前db的serverId信息，mysql命令为 show variables like 'server_id'
      */
     private Long findServerId(MysqlConnection mysqlConnection) {
         try {
@@ -673,7 +677,7 @@ public class MysqlEventParser extends AbstractMysqlEventParser implements CanalE
     }
 
     /**
-     * 查询当前的binlog位置
+     * 查询当前的binlog位置，mysql命令为 show master status
      */
     private EntryPosition findEndPosition(MysqlConnection mysqlConnection) {
         try {
@@ -701,7 +705,7 @@ public class MysqlEventParser extends AbstractMysqlEventParser implements CanalE
     }
 
     /**
-     * 查询当前的binlog位置
+     * 查询当前的binlog位置，mysql命令为 show binlog events limit 1
      */
     private EntryPosition findStartPosition(MysqlConnection mysqlConnection) {
         try {
@@ -719,7 +723,7 @@ public class MysqlEventParser extends AbstractMysqlEventParser implements CanalE
     }
 
     /**
-     * 查询当前的slave视图的binlog位置
+     * 查询当前的slave视图的binlog位置，mysql命令为 show slave status
      */
     @SuppressWarnings("unused")
     private SlaveEntryPosition findSlavePosition(MysqlConnection mysqlConnection) {

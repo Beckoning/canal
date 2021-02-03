@@ -120,7 +120,9 @@ public class MemoryMetaManager extends AbstractCanalLifeCycle implements CanalMe
 
     public static class MemoryClientIdentityBatch {
 
+        //客户端标示
         private ClientIdentity           clientIdentity;
+        //该客户端在instance上的消息获取情况，key是batchId value是消费位点
         private Map<Long, PositionRange> batches          = new MapMaker().makeMap();
         private AtomicLong               atomicMaxBatchId = new AtomicLong(1);
 

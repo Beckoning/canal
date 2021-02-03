@@ -41,7 +41,11 @@ public class AbstractCanalInstance extends AbstractCanalLifeCycle implements Can
     protected CanalMQConfig                          mqConfig;                                                     // mq的配置
 
 
-
+    /**
+     * 如果订阅关系发生变化，就做一些操作，这里看的话 主要是个就是更新filter
+     * @param identity
+     * @return
+     */
     @Override
     public boolean subscribeChange(ClientIdentity identity) {
         if (StringUtils.isNotEmpty(identity.getFilter())) {
@@ -72,6 +76,11 @@ public class AbstractCanalInstance extends AbstractCanalLifeCycle implements Can
         return true;
     }
 
+    /**
+     * 顺序为 metaManager -> alarmHandler -> eventStore -> eventSink -> eventParser。
+     *
+     * 启动顺序主要跟依赖关系有关，元信息相关的管理跟所有都有关，所以metaManager最先启动，其他的按照彼此之间的关系一一启动。
+     */
     @Override
     public void start() {
         super.start();
@@ -173,6 +182,8 @@ public class AbstractCanalInstance extends AbstractCanalLifeCycle implements Can
 
     /**
      * 初始化单个eventParser，不需要考虑group
+     * CanalLogPositionManager：管理位点信息
+     * CanalHAController：instance连接源数据库的心跳检测，并实现数据库的HA（如果配置了standby的数据库）
      */
     protected void startEventParserInternal(CanalEventParser eventParser, boolean isGroup) {
         if (eventParser instanceof AbstractEventParser) {

@@ -145,6 +145,8 @@ public class CanalController {
         if (StringUtils.isEmpty(registerIp)) {
             registerIp = ip; // 兼容以前配置
         }
+
+        //canal.zkServers service端zk地址注册
         final String zkServers = getProperty(properties, CanalConstants.CANAL_ZKSERVERS);
         if (StringUtils.isNotEmpty(zkServers)) {
             zkclientx = ZkClientx.getZkClient(zkServers);
@@ -163,7 +165,7 @@ public class CanalController {
 
                 /**
                  * note
-                 * 1.内部调用了embededCanalServer的start(destination)方法。
+                 * 1.内部调用了embededCanalServer的start(destination) 触发该方法。
                  * 这里很关键，说明每个destination对应的CanalInstance是通过embededCanalServer的start方法启动的，
                  * 这样我们就能理解，为什么之前构造器中会把instanceGenerator设置到embededCanalServer中了。
                  * embededCanalServer负责调用instanceGenerator生成CanalInstance实例，并负责其启动。
@@ -403,18 +405,22 @@ public class CanalController {
             globalConfig.setSpringXml(springXml);
         }
 
+        //根据destination创建config
         instanceGenerator = destination -> {
             InstanceConfig config = instanceConfigs.get(destination);
             if (config == null) {
                 throw new CanalServerException("can't find destination:" + destination);
             }
 
+            //如果canal.instance.global.mode 配置manager就使用 PlainCanalInstanceGenerator
             if (config.getMode().isManager()) {
                 PlainCanalInstanceGenerator instanceGenerator = new PlainCanalInstanceGenerator(properties);
                 instanceGenerator.setCanalConfigClient(managerClients.get(config.getManagerAddress()));
                 instanceGenerator.setSpringXml(config.getSpringXml());
                 return instanceGenerator.generate(destination);
             } else if (config.getMode().isSpring()) {
+                //如果canal.instance.global.mode 配置spring就使用 PlainCanalInstanceGenerator
+
                 SpringCanalInstanceGenerator instanceGenerator = new SpringCanalInstanceGenerator();
                 instanceGenerator.setSpringXml(config.getSpringXml());
                 return instanceGenerator.generate(destination);
@@ -560,6 +566,7 @@ public class CanalController {
             //这部分代码似乎没有用，目前只能是manager或者spring两种方式二选一
             for (InstanceConfigMonitor monitor : instanceConfigMonitors.values()) {
                 if (!monitor.isStart()) {
+                    //启动监听
                     monitor.start();
                 }
             }

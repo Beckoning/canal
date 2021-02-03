@@ -42,6 +42,7 @@ public class ManagerInstanceConfigMonitor extends AbstractCanalLifeCycle impleme
         super.start();
         executor.scheduleWithFixedDelay(() -> {
             try {
+                //如果文件发生改变，重新加配置并启动实例（instance）
                 scan();
                 if (isFirst) {
                     isFirst = false;
